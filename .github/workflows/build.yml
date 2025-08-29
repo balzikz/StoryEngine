@@ -1,0 +1,28 @@
+name: Build
+
+on:
+  push:
+    branches: [ "master" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: "Install Phar builder"
+        run: |
+          wget https://github.com/pmmp/PHP-CS-Fixer/releases/download/v8.0.0/box.phar -O ./box.phar
+          chmod +x ./box.phar
+
+      - name: "Build phar"
+        run: |
+          ./box.phar compile -c box.json
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: StoryEngine.phar
+          path: StoryEngine.phar
