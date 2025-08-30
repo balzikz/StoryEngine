@@ -11,7 +11,7 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
+        
       - name: "Show me the files!"
         run: ls -R
 
@@ -22,10 +22,11 @@ jobs:
 
       - name: Build phar
         run: |
-          ./box.phar compile -c box.json
+          # Мы говорим "работай в директории ./StoryEngine"
+          ./box.phar compile -c box.json --working-dir ./StoryEngine
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: StoryEngine.phar
-          path: StoryEngine.phar
+          path: StoryEngine/StoryEngine.phar
