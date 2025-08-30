@@ -4,79 +4,85 @@ namespace balzikz\storyengine;
 
 use pocketmine\plugin\PluginBase;
 use pocketmine\event\Listener;
-use pocketmine\Server;
+use pocketmine\player\Player;
+use pocketmine\utils\Config;
 
-// Для NPC+
+// Для NPC
 use pocketmine\entity\Human;
 use pocketmine\entity\Location;
 use pocketmine\entity\Skin;
-use pocketmine\nbt\tag\CompoundTag;
 
 // Для событий
 use pocketmine\event\player\PlayerInteractEvent;
 use pocketmine\event\entity\EntityDamageEvent;
-use pocketmine\event\entity\EntityDamageByEntityEvent;
-
-// Для игрока и команд
-use pocketmine\player\Player;
-use pocketmine\command\Command;
-use pocketmine\command\CommandSender;
 
 // Для предметов
 use pocketmine\item\VanillaItems;
 
 // Для интерфейсов (UI)
-use pocketmine\form\Form;
-use pocketmine\form\element\Button;
 use pocketmine\form\SimpleForm;
+use pocketmine\form\element\Button;
+
 
 class Main extends PluginBase implements Listener {
 
-    /** @var Human|null */
-    private ?Human $storyNpc = null; // Переменная для хранения нашего NPC, чтобы к нему можно было обратиться
+    private ?Human $storyNpc = null;
+    private Config $playerData;
 
     // --- Главный метод, который выполняется при включении плагина ---
     public function onEnable() : void {
-        // Регистрируем, что этот плагин будет слушать события (клики, урон и т.д.)
         $this->getServer()->getPluginManager()->registerEvents($this, $this);
 
-        // Выводим сообщение в консоль, что плагин успешно запустился
+        // --- ГЛАВНОЕ ИСПРАВЛЕНИЕ КРАША ---
+        // Эта команда "распаковывает" skin.png из нашего .phar архива
+        // в папку /plugin_data/StoryEngine/, если его там еще нет.
+        // Это нужно сделать ДО того, как мы попытаемся его использовать.
+        $this->saveResource("skin.png");
+        // -------------------------------------
+
+        // Инициализируем хранилище данных для прогресса игрока
+        $this->playerData = new Config($this->getDataFolder() . "player_data.yml", Config::YAML);
+
         $this->getLogger()->info("§aStoryEngine успешно запущен!");
 
         // Вызываем функцию создания нашего NPC
         $this->spawnStoryNpc();
     }
 
+    // --- Функции для удобной работы с данными игрока ---
+    public function getPlayerProgress(Player $player): array {
+        // Получаем данные игрока по его нику. Если данных нет, возвращаем массив по умолчанию.
+        return $this->playerData->get($player->getName(), [
+            "quest_stage" => 0 // 0 = игрок еще не начинал сюжет
+        ]);
+    }
+
+    public function setPlayerProgress(Player $player, array $data): void {
+        // Устанавливаем и сразу сохраняем данные игрока.
+        $this->playerData->set($player->getName(), $data);
+        $this->playerData->save();
+    }
+
     // --- Функция для создания NPC ---
     public function spawnStoryNpc() : void {
-        // Получаем мир по умолчанию
         $world = $this->getServer()->getWorldManager()->getDefaultWorld();
-
-        // Координаты, где появится NPC. Измени их на свои!
         $location = new Location(128, 66, 128, $world, 0, 0);
 
-        // Загружаем скин из папки resources/skin.png
-        // Если файла нет, сервер выдаст ошибку, так что убедись, что он на месте!
         try {
-            $skin = new Skin("StoryNPC", self::getSkinDataFromPNG($this->getDataFolder() . "resources/skin.png"));
+            // --- ВТОРОЕ ИСПРАВЛЕНИЕ ---
+            // Теперь мы ищем скин в папке с данными плагина, а не в "resources"
+            $skinPath = $this->getDataFolder() . "skin.png";
+            $skin = new Skin("StoryNPC", self::getSkinDataFromPNG($skinPath));
         } catch (\Exception $e) {
             $this->getLogger()->error("Не удалось загрузить скин для NPC: " . $e->getMessage());
             return;
         }
 
-        // Создаем NPC
         $npc = new Human($location, $skin);
-
-        // Настройки NPC
-        $npc->setNameTag("Старейшина"); // Имя, которое будет видно над головой
-        $npc->setNameTagAlwaysVisible(true); // Имя видно всегда, а не только при наведении
-        $npc->setCanSaveWithChunk(true); // Сохранять NPC вместе с миром
-        $npc->setImmobile(true); // Запрещаем NPC двигаться самостоятельно
-
-        // "Спавним" (добавляем) NPC в мир
+        $npc->setNameTag("Старейшина");
+        $npc->setNameTagAlwaysVisible(true);
+        $npc->setImmobile(true);
         $npc->spawnToAll();
-
-        // Сохраняем NPC в нашу переменную для дальнейшего использования
         $this->storyNpc = $npc;
     }
 
@@ -85,11 +91,8 @@ class Main extends PluginBase implements Listener {
         $player = $event->getPlayer();
         $entity = $event->getTargetEntity();
 
-        // Проверяем, что игрок нажал именно на нашего NPC
         if ($this->storyNpc !== null && $entity !== null && $entity->getId() === $this->storyNpc->getId()) {
-            // Отменяем стандартное действие (удар)
             $event->cancel();
-            // Открываем диалоговое окно для игрока
             $this->openMainDialog($player);
         }
     }
@@ -97,57 +100,67 @@ class Main extends PluginBase implements Listener {
     // --- Обработчик урона: делаем нашего NPC бессмертным ---
     public function onEntityDamage(EntityDamageEvent $event) : void {
         $entity = $event->getEntity();
-
-        // Проверяем, что урон пытаются нанести именно нашему NPC
         if ($this->storyNpc !== null && $entity->getId() === $this->storyNpc->getId()) {
-            // Отменяем событие урона
             $event->cancel();
         }
     }
 
-    // --- Функция, которая создает и показывает диалоговое окно ---
+    // --- Функция, которая создает и показывает "умный" диалог ---
     public function openMainDialog(Player $player) : void {
-        // Создаем простую форму (окно с кнопками)
-        $form = new SimpleForm(function (Player $player, ?int $data) {
-            // Эта часть кода выполняется ПОСЛЕ того, как игрок нажал на кнопку
+        $progress = $this->getPlayerProgress($player);
 
-            // Если игрок просто закрыл окно, ничего не делаем
-            if ($data === null) {
-                return;
-            }
+        $form = new SimpleForm(function (Player $player, ?int $data) use ($progress) {
+            if ($data === null) return;
 
-            // В переменной $data хранится номер кнопки, которую нажал игрок (начиная с 0)
-            switch ($data) {
-                case 0: // Нажата первая кнопка ("Расскажи мне историю")
-                    $player->sendMessage("§e<Старейшина>§f Давным-давно, этот мир был...");
-                    // Здесь ты можешь выдать квест, телепортировать игрока и т.д.
-                    $player->getInventory()->addItem(VanillaItems::APPLE());
-                    $player->sendMessage("§e<Старейшина>§f Возьми это яблоко, оно придаст тебе сил.");
-                    break;
-
-                case 1: // Нажата вторая кнопка ("Кто ты?")
-                    $player->sendMessage("§e<Старейшина>§f Я лишь хранитель этого места. Мое имя давно забыто.");
-                    break;
-
-                case 2: // Нажата третья кнопка ("Мне пора идти")
-                    $player->sendMessage("§e<Старейшина>§f Удачи тебе, путник.");
-                    break;
+            // Логика зависит от стадии квеста
+            if ($progress['quest_stage'] === 0) { // Если игрок на начальной стадии
+                switch ($data) {
+                    case 0: // Кнопка "Я готов помочь"
+                        $player->sendMessage("§e<Старейшина>§f Отлично! Для начала... Принеси мне красный цветок. Он растет где-то на поляне за деревней.");
+                        
+                        // Обновляем прогресс игрока!
+                        $newProgress = $progress;
+                        $newProgress['quest_stage'] = 1; // Переводим игрока на стадию 1
+                        $this->setPlayerProgress($player, $newProgress);
+                        break;
+                    case 1: // Кнопка "Мне нужно подумать"
+                        $player->sendMessage("§e<Старейшина>§f Не затягивай. Судьба мира не ждет.");
+                        break;
+                }
+            } elseif ($progress['quest_stage'] === 1) { // Если игрок уже взял квест
+                 switch ($data) {
+                    case 0: // Кнопка "Я принес цветок"
+                        $player->sendMessage("§e<Старейшина>§f (Логика проверки цветка еще не добавлена)");
+                        break;
+                    case 1: // Кнопка "Напомни, что нужно сделать?"
+                        $player->sendMessage("§e<Старейшина>§f Я попросил тебя принести мне красный цветок с поляны.");
+                        break;
+                }
             }
         });
 
-        // --- Настраиваем внешний вид формы ---
-        $form->setTitle("Разговор со Старейшиной"); // Заголовок окна
-        $form->setContent("Здравствуй, путник. Что привело тебя в эти земли?"); // Основной текст
-        $form->addButton("Расскажи мне историю", Button::TYPE_IMAGE, "textures/items/book_writable"); // Кнопка 0
-        $form->addButton("Кто ты?", Button::TYPE_IMAGE, "textures/ui/icon_steve"); // Кнопка 1
-        $form->addButton("Мне пора идти", Button::TYPE_IMAGE, "textures/ui/crossout"); // Кнопка 2
-
-        // Отправляем форму игроку
+        // Форма меняется в зависимости от прогресса
+        if ($progress['quest_stage'] === 0) {
+            $form->setTitle("Разговор со Старейшиной");
+            $form->setContent("Здравствуй, путник. Мир на пороге тьмы, и нам нужна твоя помощь. Ты готов?");
+            $form->addButton("Я готов помочь");
+            $form->addButton("Мне нужно подумать");
+        } elseif ($progress['quest_stage'] === 1) {
+            $form->setTitle("Разговор со Старейшиной");
+            $form->setContent("Ну что, путник? Удалось ли тебе найти то, о чем я просил?");
+            $form->addButton("Я принес цветок");
+            $form->addButton("Напомни, что нужно сделать?");
+        }
+        
         $player->sendForm($form);
     }
     
+    // Вспомогательная функция для загрузки скина из файла (без изменений)
     private static function getSkinDataFromPNG(string $path) : string {
         $img = @imagecreatefrompng($path);
+        if($img === false){
+            throw new \Exception("Не удалось прочитать изображение по пути: $path");
+        }
         $bytes = "";
         for ($y = 0; $y < imagesy($img); $y++) {
             for ($x = 0; $x < imagesx($img); $x++) {
