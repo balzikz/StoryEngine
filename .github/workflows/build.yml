@@ -14,7 +14,7 @@ jobs:
 
       # Шаг 2: Вся магия в одной строчке. Вызываем найденный тобой Action.
       - name: Build Plugin
-        uses: brokiem/pmmp-plugin-builder-action@v4 # <--- ТВОЯ НАХОДКА
+        uses: brokiem/pmmp-plugin-builder-action@main # <--- ТВОЯ НАХОДКА
         with:
           # Мы просто говорим ему, как назвать готовый файл
           plugin-name: "StoryEngine" 
