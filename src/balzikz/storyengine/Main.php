@@ -81,7 +81,6 @@ class Main extends PluginBase implements Listener {
         $npc = new Human($location, $skin);
         $npc->setNameTag("Старейшина");
         $npc->setNameTagAlwaysVisible(true);
-        $npc->setImmobile(true);
         $npc->spawnToAll();
         $this->storyNpc = $npc;
     }
