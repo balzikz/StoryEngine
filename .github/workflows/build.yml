@@ -3,7 +3,7 @@ name: Build
 on:
   push:
     branches: [ "main", "master" ]
-  pull_request: 
+  pull_request:
 
 jobs:
   build:
@@ -15,8 +15,8 @@ jobs:
 
       - name: Build Plugin
         id: poggit
-        uses: JavierLeon9966/poggit-ci@master
- 
+        uses: poggit/poggit-ci@v4 
+
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
