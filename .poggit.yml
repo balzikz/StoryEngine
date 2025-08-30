@@ -1,0 +1,9 @@
+---
+branches:
+  - main
+
+projects:
+  StoryEngine:
+    path: ""
+    icon: "resources/skin.png"
+...
