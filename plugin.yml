@@ -4,3 +4,7 @@ main: balzikz\storyengine\Main
 version: 0.1.0-alpha
 api: [4.0.0, 5.0.0]
 description: "Движок для создания интерактивных историй"
+commands:
+  story:
+    description: "Главная команда StoryEngine"
+    permission: storyengine.command.admin
