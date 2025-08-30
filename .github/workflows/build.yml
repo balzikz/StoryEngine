@@ -1,7 +1,4 @@
-
-
-
-name: Build Plugin
+name: Build
 
 on:
   push:
@@ -12,33 +9,15 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-      # Шаг 1: Скачиваем твой код. Мы знаем, что он создает папку "StoryEngine" внутри рабочей директории.
       - name: Checkout
         uses: actions/checkout@v4
 
-      # Шаг 2: Готовим окружение PHP.
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: '8.2'
-          extensions: gd, pmmp, sqlite3
-          tools: composer
+      - name: Build Plugin using Poggit-CI
+        id: poggit
+        uses: poggit/poggit-ci@v4 
 
-      # Шаг 3: Скачиваем сборщик box.phar в КОРЕНЬ рабочей директории.
-      - name: Download Box
-        run: wget https://github.com/box-project/box/releases/latest/download/box.phar -O box.phar && chmod +x box.phar
-
-      # ШАГ 4: ГЛАВНОЕ ИЗМЕНЕНИЕ. Собираем PHAR-архив.
-      - name: Build PHAR
-        run: |
-          # Сначала ПРИНУДИТЕЛЬНО переходим в созданную папку с твоим проектом
-          cd StoryEngine
-          # Затем запускаем сборщик, который лежит на уровень ВЫШЕ (../)
-          ../box.phar compile
-
-      # Шаг 5: Загружаем результат. Мы знаем, что он лежит внутри вложенной папки.
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
           name: StoryEngine.phar
-          path: StoryEngine/StoryEngine.phar
+          path: ${{ steps.poggit.outputs.artifact_path }}
