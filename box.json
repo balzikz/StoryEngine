@@ -1,0 +1,10 @@
+{
+  "files": [
+    "plugin.yml",
+    "resources",
+    "src"
+  ],
+  "main": "plugin.yml",
+  "output": "StoryEngine.phar",
+  "stub": true
+}
