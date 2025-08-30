@@ -1,8 +1,9 @@
-name: Build
+name: Build Plugin
 
 on:
   push:
-    branches: [ "main", "master" ]
+    branches: [ "main" ]
+  pull_request:
 
 jobs:
   build:
@@ -11,22 +12,22 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        
-      - name: "Show me the files!"
-        run: ls -R
 
-      - name: Install Phar builder
-        run: |
-         wget https://github.com/box-project/box/releases/latest/download/box.phar -O ./box.phar
-          chmod +x ./box.phar
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.1'
+          extensions: gd, pmmp, sqlite3
+          tools: composer
 
-      - name: Build phar
-        run: |
-          # Мы говорим "работай в директории ./StoryEngine"
-          ./box.phar compile -c box.json --working-dir ./StoryEngine
+      - name: Download Box
+        run: wget https://github.com/box-project/box/releases/latest/download/box.phar -O box.phar && chmod +x box.phar
 
-      - name: Upload artifact
+      - name: Build PHAR
+        run: ./box.phar compile
+
+      - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
           name: StoryEngine.phar
-          path: StoryEngine/StoryEngine.phar
+          path: StoryEngine.phar
