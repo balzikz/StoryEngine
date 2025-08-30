@@ -3,21 +3,18 @@ name: Build
 on:
   push:
     branches: [ "main" ]
+  pull_request:
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      # Шаг 1: Скачиваем твой код. Все как обычно.
+      - uses: actions/checkout@v4
 
-      - name: Build Plugin using Poggit-CI
-        id: poggit
-        uses: poggit/poggit-ci@v4 
-
-      - name: Upload Artifact
-        uses: actions/upload-artifact@v4
+      # Шаг 2: Вся магия в одной строчке. Вызываем найденный тобой Action.
+      - name: Build Plugin
+        uses: brokiem/pmmp-plugin-builder-action@v2 # <--- ТВОЯ НАХОДКА
         with:
-          name: StoryEngine.phar
-          path: ${{ steps.poggit.outputs.artifact_path }}
+          # Мы просто говорим ему, как назвать готовый файл
+          plugin-name: "StoryEngine" 
