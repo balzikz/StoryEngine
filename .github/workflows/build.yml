@@ -9,11 +9,14 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-      # Шаг 1: Скачиваем твой код. Мы знаем, что он создает чистую структуру.
-      - name: Checkout
+      # ШАГ 1: ПРИНУДИТЕЛЬНЫЙ ЧЕКАУТ В КОНКРЕТНУЮ ПАПКУ
+      # Мы говорим: "Мне плевать, как ты хочешь назвать папку. Скачай весь код в папку с названием 'source'".
+      - name: Checkout to a specific folder
         uses: actions/checkout@v4
+        with:
+          path: 'source'
 
-      # Шаг 2: Готовим правильную среду PHP, которая нужна для современного box.phar.
+      # Шаг 2: Готовим окружение PHP.
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
@@ -23,13 +26,15 @@ jobs:
       - name: Download Box
         run: wget https://github.com/box-project/box/releases/latest/download/box.phar -O box.phar && chmod +x box.phar
 
-      # Шаг 4: Собираем PHAR. Никаких --working-dir. Просто и чисто, потому что структура правильная.
-      - name: Build PHAR
-        run: ./box.phar compile
+      # ШАГ 4: СБОРКА С АБСОЛЮТНЫМ ПУТЕМ
+      # Мы говорим: "Эй, box.phar! Твоя рабочая директория - это папка 'source'. Работай ТОЛЬКО в ней".
+      - name: Build PHAR with absolute working directory
+        run: ./box.phar compile --working-dir=./source
 
-      # Шаг 5: Загружаем результат.
+      # Шаг 5: ЗАГРУЗКА ИЗ КОНКРЕТНОГО МЕСТА
+      # Мы говорим: "Готовый плагин лежит в папке 'source'. Забери его оттуда".
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
           name: StoryEngine.phar
-          path: StoryEngine.phar
+          path: source/StoryEngine.phar
