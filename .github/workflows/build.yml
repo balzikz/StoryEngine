@@ -3,6 +3,7 @@ name: Build
 on:
   push:
     branches: [ "main", "master" ]
+  pull_request: 
 
 jobs:
   build:
@@ -12,20 +13,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: "Install Phar builder"
-        run: |
-         wget https://github.com/box-project/box/releases/latest/download/box.phar -O ./box.phar
-          chmod +x ./box.phar
-          
-      - name: "Show me the files!"
-        run: ls -R
-
-      - name: "Build phar"
-        run: |
-          ./box.phar compile -c box.json
-
-      - name: Upload artifact
+      - name: Build Plugin
+        id: poggit
+        uses: JavierLeon9966/poggit-ci@master
+ 
+      - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
           name: StoryEngine.phar
-          path: StoryEngine.phar
+          path: ${{ steps.poggit.outputs.artifact_path }}
