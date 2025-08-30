@@ -1,16 +1,35 @@
-name: See The Truth
+name: Build Plugin
 
 on:
   push:
     branches: [ "main" ]
 
 jobs:
-  debug:
+  build:
     runs-on: ubuntu-latest
     
     steps:
+      # Шаг 1: Скачиваем твой код. Мы знаем, что он создает чистую структуру.
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Show me everything
-        run: ls -R
+      # Шаг 2: Готовим правильную среду PHP, которая нужна для современного box.phar.
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2' 
+
+      # Шаг 3: Скачиваем сборщик box.phar.
+      - name: Download Box
+        run: wget https://github.com/box-project/box/releases/latest/download/box.phar -O box.phar && chmod +x box.phar
+
+      # Шаг 4: Собираем PHAR. Никаких --working-dir. Просто и чисто, потому что структура правильная.
+      - name: Build PHAR
+        run: ./box.phar compile
+
+      # Шаг 5: Загружаем результат.
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: StoryEngine.phar
+          path: StoryEngine.phar
