@@ -46,7 +46,6 @@ class StoryCommand extends Command {
                     $this->createNpc($sender, $args[2], $args[3]);
                 }
                 break;
-            // ... другие подкоманды
         }
         return true;
     }
@@ -69,8 +68,6 @@ class StoryCommand extends Command {
             "z" => $pos->getZ()
         ]);
         $npcConfig->save();
-        
-        // Тут будет логика спавна NPC в мире, а пока...
         $player->sendMessage("§aNPC '$name' с ID '$npcId' успешно создан и сохранен в npcs.yml!");
     }
 }
