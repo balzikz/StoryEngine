@@ -5,13 +5,10 @@ version: 2.1.0-alpha
 api: [5.0.0]
 description: "Движок для создания интерактивных историй"
 
-# --- НОВЫЙ БЛОК ---
 permissions:
   storyengine.command.admin:
     description: "Дает полный доступ к командам StoryEngine"
-    default: op # По умолчанию, это право будет у всех операторов
-# --------------------
-
+    default: op
 commands:
   story:
     description: "Главная команда StoryEngine"
